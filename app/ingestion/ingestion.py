@@ -34,10 +34,43 @@ class DocumentIngestor:
 
     def load_and_split_documents(self, data_dir: str):
         """
-        To be implemented in Commit 4.
-        Loads PDF files from data_dir and splits them.
+        Loads PDF files from data_dir, splits them, and adds RBAC role metadata.
         """
-        pass
+        print(f"Scanning '{data_dir}' for PDF files...")
+        pdf_files = [f for f in os.listdir(data_dir) if f.lower().endswith(".pdf")]
+        
+        all_chunks = []
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000,
+            chunk_overlap=100
+        )
+        
+        for pdf_file in pdf_files:
+            file_path = os.path.join(data_dir, pdf_file)
+            print(f"Loading {pdf_file}...")
+            
+            try:
+                loader = PyPDFLoader(file_path)
+                pages = loader.load()
+            except Exception as e:
+                print(f"Error loading {pdf_file}: {e}")
+                continue
+                
+            required_role = get_required_role_for_doc(pdf_file)
+            print(f"File: {pdf_file} -> Required Role: {required_role.name} (level {required_role.value})")
+            
+            # Split the document
+            doc_chunks = splitter.split_documents(pages)
+            
+            # Enrich chunk metadata with RBAC fields
+            for chunk in doc_chunks:
+                chunk.metadata["source"] = pdf_file
+                chunk.metadata["required_role_name"] = required_role.name
+                chunk.metadata["required_role_level"] = required_role.value
+                all_chunks.append(chunk)
+                
+        print(f"Successfully loaded and split {len(pdf_files)} documents into {len(all_chunks)} chunks.")
+        return all_chunks
 
     def index_documents(self, chunks):
         """
