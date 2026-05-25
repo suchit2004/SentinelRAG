@@ -15,11 +15,174 @@ st.set_page_config(
     layout="wide"
 )
 
+# Premium UI CSS Injection
+st.markdown(
+    """
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;500;700&display=swap');
+    
+    /* General styles */
+    .stApp {
+        background-color: #0d0f1d;
+        color: #e2e8f0;
+        font-family: 'Outfit', sans-serif;
+    }
+    
+    h1, h2, h3, .stSubheader {
+        font-family: 'Space Grotesk', sans-serif;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+    }
+    
+    /* Header Gradient styling */
+    .hero-container {
+        background: linear-gradient(135deg, rgba(31, 38, 135, 0.2) 0%, rgba(139, 92, 246, 0.15) 100%);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        text-align: left;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .hero-container::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+        pointer-events: none;
+    }
+    
+    .hero-title {
+        font-size: 2.8rem;
+        background: linear-gradient(to right, #00f2fe, #4facfe, #8b5cf6, #ec4899);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 5px;
+        font-weight: 800;
+    }
+    
+    .hero-subtitle {
+        font-size: 1.15rem;
+        color: #94a3b8;
+        font-weight: 300;
+        margin-bottom: 0px;
+    }
+    
+    /* Access Level Badges */
+    .role-badge {
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .role-admin {
+        background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+        color: #ffffff;
+        border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    
+    .role-executive {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: #ffffff;
+        border: 1px solid rgba(245, 158, 11 0.4);
+    }
+    
+    .role-employee {
+        background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        color: #ffffff;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    
+    /* Source Cards Glassmorphism styling */
+    .source-card {
+        background: rgba(22, 28, 45, 0.5);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .source-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(139, 92, 246, 0.3);
+        background: rgba(22, 28, 45, 0.7);
+    }
+    
+    .source-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 8px;
+    }
+    
+    .source-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #38bdf8;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .source-score {
+        font-size: 0.8rem;
+        color: #64748b;
+    }
+    
+    .source-body {
+        font-size: 0.85rem;
+        color: #cbd5e1;
+        line-height: 1.5;
+        white-space: pre-wrap;
+    }
+    
+    /* Sidebar glassmorphic styling */
+    section[data-testid="stSidebar"] {
+        background-color: #090a12 !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Modern Streamlit adjustments */
+    div[data-testid="stExpander"] {
+        background: rgba(22, 28, 45, 0.3) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 10px !important;
+    }
+    
+    /* Styled warnings & errors */
+    .stWarning, .stError {
+        border-radius: 10px !important;
+    }
+    
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # Initialize Session State
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "pipeline" not in st.session_state:
     try:
+        # Load local vector store, model
         st.session_state.pipeline = SentinelRAGPipeline()
     except Exception as e:
         st.session_state.pipeline = None
@@ -27,53 +190,82 @@ if "pipeline" not in st.session_state:
 
 # Sidebar
 with st.sidebar:
-    st.title("🛡️ SentinelRAG Control")
-    st.write("Secure Enterprise Search with Role-Based Access Control and AI Guardrails.")
+    st.markdown("## 🛡️ SentinelRAG")
+    st.markdown("<p style='color: #64748b; font-size: 0.85rem;'>Enterprise RAG SecOps System</p>", unsafe_allow_html=True)
     st.markdown("---")
     
     # User Profile / Role Simulation
-    st.subheader("Simulate User Identity")
+    st.subheader("Simulate Identity")
     user_name = st.text_input("Name", value="Jane Doe")
     user_role_name = st.selectbox(
-        "User Role",
+        "Select Role",
         options=[role.name for role in Role],
         index=0  # Defaults to EMPLOYEE
     )
     
     current_role = Role.from_str(user_role_name)
-    st.info(f"Active Role: **{user_role_name}** (Level {current_role.value})")
     
-    # Access matrix visualization
-    st.markdown("### 📋 Access Level Rules")
+    # Active role display using custom badges
+    badge_class = f"role-{user_role_name.lower()}"
     st.markdown(
-        f"""
-        - **ADMIN** (Level 3): Full system access
-        - **EXECUTIVE** (Level 2): Financials + Market Reports
-        - **EMPLOYEE** (Level 1): Market Reports only
-        """
+        f"<div style='margin-bottom: 15px;'>Active Clearance: <span class='role-badge {badge_class}'>{user_role_name}</span></div>", 
+        unsafe_allow_html=True
     )
     
+    # Access matrix visualization
+    st.markdown("### 📋 Access Policies")
+    st.markdown(
+        f"""
+        <div style="background-color: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); font-size: 0.85rem;">
+            <p style="margin: 0 0 8px 0;"><span class="role-badge role-admin">ADMIN</span>: Full repository</p>
+            <p style="margin: 0 0 8px 0;"><span class="role-badge role-executive">EXECUTIVE</span>: Financials + IPO Reports</p>
+            <p style="margin: 0;"><span class="role-badge role-employee">EMPLOYEE</span>: IPO Reports only</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    st.markdown("---")
     if st.button("Clear Chat History", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
-# Main Application Window
-st.title("SentinelRAG: Secure Retrieval & Generation")
-st.markdown("Use this secure playground to query company documents. The system will filter references based on your active role and apply guardrails to both queries and responses.")
+# Hero Header section
+st.markdown(
+    """
+    <div class="hero-container">
+        <div class="hero-title">SentinelRAG</div>
+        <div class="hero-subtitle">Role-Based Document Retrieval Engine with Integrated AI Guardrails</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # Display chat messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         
-        # Display sources if any were retrieved
+        # Display sources if any were retrieved (styled as custom HTML Cards)
         if "sources" in msg and msg["sources"]:
             with st.expander("🔍 View Retrieved Sources"):
                 for idx, src in enumerate(msg["sources"]):
+                    role_class = f"role-{src['required_role_name'].lower()}"
                     st.markdown(
-                        f"**Source {idx+1}:** `{src['source']}` (Required Role: `{src['required_role_name']}`, Similarity Score: `{src['score']:.4f}`)"
+                        f"""
+                        <div class="source-card">
+                            <div class="source-header">
+                                <div class="source-title">📄 {src['source']}</div>
+                                <div>
+                                    <span class="role-badge {role_class}">{src['required_role_name']}</span>
+                                    <span class="source-score" style="margin-left: 10px;">Score: {src['score']:.4f}</span>
+                                </div>
+                            </div>
+                            <div class="source-body">{src['page_content']}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
                     )
-                    st.text_area(f"Snippet {idx+1}", value=src["page_content"], height=100, disabled=True, key=f"src_{msg['id']}_{idx}")
         
         # Display guardrail warning
         if "guardrail_warning" in msg and msg["guardrail_warning"]:
@@ -97,7 +289,7 @@ if prompt := st.chat_input("Ask a question about financial or IPO reports..."):
     if st.session_state.pipeline is None:
         st.error("RAG Pipeline is not initialized. Please verify Groq API key and Qdrant database.")
     else:
-        with st.spinner("Retrieving secure documents and generating response..."):
+        with st.spinner("Processing request through security layers..."):
             pipeline_result = st.session_state.pipeline.run(prompt, user_role_name)
             
         # Parse result
@@ -122,10 +314,22 @@ if prompt := st.chat_input("Ask a question about financial or IPO reports..."):
             if sources:
                 with st.expander("🔍 View Retrieved Sources"):
                     for idx, src in enumerate(sources):
+                        role_class = f"role-{src['required_role_name'].lower()}"
                         st.markdown(
-                            f"**Source {idx+1}:** `{src['source']}` (Required Role: `{src['required_role_name']}`, Similarity Score: `{src['score']:.4f}`)"
+                            f"""
+                            <div class="source-card">
+                                <div class="source-header">
+                                    <div class="source-title">📄 {src['source']}</div>
+                                    <div>
+                                        <span class="role-badge {role_class}">{src['required_role_name']}</span>
+                                        <span class="source-score" style="margin-left: 10px;">Score: {src['score']:.4f}</span>
+                                    </div>
+                                </div>
+                                <div class="source-body">{src['page_content']}</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
                         )
-                        st.text_area(f"Snippet {idx+1}", value=src["page_content"], height=100, disabled=True, key=f"src_new_{idx}")
                         
             if guard_warning:
                 st.warning(guard_warning)
