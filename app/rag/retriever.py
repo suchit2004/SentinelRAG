@@ -26,15 +26,15 @@ class RBACRetriever:
             ]
         )
         
-        results = self.client.search(
+        results = self.client.query_points(
             collection_name=self.collection_name,
-            query_vector=query_vector,
+            query=query_vector,
             query_filter=rbac_filter,
             limit=limit
         )
         
         docs = []
-        for hit in results:
+        for hit in results.points:
             docs.append({
                 "page_content": hit.payload.get("page_content", ""),
                 "source": hit.payload.get("source", ""),
