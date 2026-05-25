@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
@@ -74,11 +74,54 @@ class DocumentIngestor:
 
     def index_documents(self, chunks):
         """
-        To be implemented in Commit 5.
         Generates embeddings and indexes chunks in Qdrant.
         """
-        pass
+        from qdrant_client.models import PointStruct
+        
+        print(f"Generating embeddings and indexing {len(chunks)} chunks in Qdrant...")
+        points = []
+        
+        for idx, chunk in enumerate(chunks):
+            # Show progress every 50 chunks
+            if idx > 0 and idx % 50 == 0:
+                print(f"Processed {idx}/{len(chunks)} chunks...")
+                
+            vector = self.embedding_model.encode(chunk.page_content).tolist()
+            
+            # Combine langchain chunk metadata and our RBAC metadata into the payload
+            payload = {
+                "page_content": chunk.page_content,
+                "metadata": chunk.metadata,
+                "source": chunk.metadata.get("source", ""),
+                "required_role_name": chunk.metadata.get("required_role_name", "ADMIN"),
+                "required_role_level": chunk.metadata.get("required_role_level", 3)
+            }
+            
+            points.append(
+                PointStruct(
+                    id=idx,
+                    vector=vector,
+                    payload=payload
+                )
+            )
+            
+        # Upsert in batches of 100
+        batch_size = 100
+        for i in range(0, len(points), batch_size):
+            batch = points[i:i+batch_size]
+            self.client.upsert(
+                collection_name=COLLECTION_NAME,
+                points=batch
+            )
+            
+        print(f"Successfully indexed all {len(chunks)} chunks into Qdrant collection '{COLLECTION_NAME}'.")
 
 if __name__ == "__main__":
+    # Ensure we run from workspace root to resolve paths correctly
     ingestor = DocumentIngestor()
     ingestor.init_collection()
+    chunks = ingestor.load_and_split_documents("data")
+    if chunks:
+        ingestor.index_documents(chunks)
+    else:
+        print("No documents found to ingest.")
