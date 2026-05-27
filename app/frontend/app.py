@@ -366,7 +366,7 @@ with tabs[0]:
             st.error("RAG Pipeline is not initialized. Please verify Groq API key and Qdrant database.")
         else:
             with st.spinner("Processing request through security layers..."):
-                pipeline_result = st.session_state.pipeline.run(prompt, user_role_name)
+                pipeline_result = st.session_state.pipeline.run(prompt, user_role_name, username=st.session_state.username)
                 
             # Parse result
             if not pipeline_result["input_is_safe"]:
@@ -553,6 +553,63 @@ if current_role >= Role.EXECUTIVE:
                             st.error(f"Error reading PDF: {e}")
                             if os.path.exists(temp_path):
                                 os.remove(temp_path)
+
+# Tab 3: Security Audits (Admin only)
+if current_role >= Role.ADMIN:
+    with tabs[3]:
+        st.subheader("🛡️ Security Audit Logs")
+        st.markdown("Cryptographic interaction logs showing guardrail safety status and access attempts.")
+        
+        audit_logger = st.session_state.pipeline.audit_logger
+        logs = audit_logger.read_logs()
+        
+        if st.button("Clear Audit Logs", type="secondary", use_container_width=True):
+            if audit_logger.clear_logs():
+                st.success("Audit logs cleared successfully!")
+                st.rerun()
+                
+        if not logs:
+            st.info("No security events have been logged yet.")
+        else:
+            # Add filter controls
+            col1, col2 = st.columns(2)
+            filter_role = col1.selectbox("Filter by Role", ["ALL"] + [r.name for r in Role])
+            filter_status = col2.selectbox("Filter by Safety Status", ["ALL", "SAFE", "BLOCKED"])
+            
+            # Apply filters
+            filtered_logs = logs
+            if filter_role != "ALL":
+                filtered_logs = [l for l in filtered_logs if l["role"] == filter_role]
+            if filter_status == "SAFE":
+                filtered_logs = [l for l in filtered_logs if l.get("input_is_safe", True)]
+            elif filter_status == "BLOCKED":
+                filtered_logs = [l for l in filtered_logs if not l.get("input_is_safe", True)]
+                
+            if not filtered_logs:
+                st.info("No logs match the selected filters.")
+            else:
+                for entry in filtered_logs:
+                    status_badge = "🟢 SAFE" if entry.get("input_is_safe", True) else "🔴 BLOCKED"
+                    pii_badge = "⚠️ PII REDACTED" if entry.get("pii_detected", False) else "✅ NO PII"
+                    
+                    st.markdown(
+                        f"""
+                        <div style="background-color: rgba(22, 28, 45, 0.5); padding: 15px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px;">
+                                <span style="color: #64748b;">🕒 {entry['timestamp']}</span>
+                                <span style="color: #38bdf8;">👤 User: <b>{entry['username']}</b> ({entry['role']})</span>
+                            </div>
+                            <p style="margin: 0 0 8px 0; font-size: 0.9rem; color: #e2e8f0;"><b>Query:</b> <i>"{entry['query']}"</i></p>
+                            <div style="display: flex; gap: 20px; font-size: 0.8rem; color: #94a3b8;">
+                                <span><b>Safety Status:</b> {status_badge}</span>
+                                <span><b>PII:</b> {pii_badge}</span>
+                                <span><b>Latency:</b> {entry['latency_ms']} ms</span>
+                            </div>
+                            {f'<p style="margin: 8px 0 0 0; font-size: 0.85rem; color: #f87171; background-color: rgba(239, 68, 68, 0.1); padding: 6px 10px; border-radius: 6px;">⚠️ <b>Safety Violation:</b> {entry["safety_reason"]}</p>' if not entry.get("input_is_safe", True) else ''}
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
 
 
 
