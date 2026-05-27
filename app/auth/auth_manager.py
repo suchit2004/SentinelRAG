@@ -34,3 +34,24 @@ class AuthManager:
         else:
             self.users = {}
 
+    def authenticate_user(self, username: str, password: str) -> bool:
+        """
+        Validates username and password. Returns True if valid, False otherwise.
+        """
+        if username not in self.users:
+            return False
+        
+        hashed = hash_password(password)
+        return self.users[username]["password_hash"] == hashed
+
+    def get_user_role(self, username: str):
+        """
+        Returns the Role enum of the user if found, default to Role.EMPLOYEE.
+        """
+        from app.ingestion.rbac_metadata import Role
+        if username in self.users:
+            role_str = self.users[username].get("role", "EMPLOYEE")
+            return Role.from_str(role_str)
+        return Role.EMPLOYEE
+
+
