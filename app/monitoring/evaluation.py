@@ -124,6 +124,31 @@ def run_ragas_evaluation():
         print("\n================ RAGAS EVALUATION RESULTS ================")
         print(result)
         print("==========================================================")
+        
+        # Save evaluation result to history
+        try:
+            import json
+            from datetime import datetime
+            
+            history_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/eval_history.json"))
+            os.makedirs(os.path.dirname(history_path), exist_ok=True)
+            
+            history = []
+            if os.path.exists(history_path):
+                with open(history_path, "r") as f:
+                    history = json.load(f)
+                    
+            history.append({
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "faithfulness": float(result.get("faithfulness", 0.0)),
+                "answer_relevance": float(result.get("answer_relevance", 0.0))
+            })
+            
+            with open(history_path, "w") as f:
+                json.dump(history, f, indent=2)
+        except Exception as he:
+            print(f"Failed to write evaluation history: {he}")
+            
         return result
     except Exception as e:
         print(f"Ragas evaluation failed: {e}")

@@ -554,6 +554,47 @@ if current_role >= Role.EXECUTIVE:
                             if os.path.exists(temp_path):
                                 os.remove(temp_path)
 
+# Tab 2: Quality Analytics (Executive and Admin)
+if current_role >= Role.EXECUTIVE:
+    with tabs[2]:
+        st.subheader("📊 RAG Quality Analytics (Ragas)")
+        st.markdown("Automated evaluation metrics measuring the quality of retrieved context and generation faithfulness.")
+        
+        # Trigger button
+        if st.button("🚀 Trigger Ragas Quality Check", use_container_width=True):
+            with st.spinner("Executing Ragas quality checks against test dataset (Llama-3 evaluation)..."):
+                from app.monitoring.evaluation import run_ragas_evaluation
+                res = run_ragas_evaluation()
+                if res:
+                    st.success(f"Evaluation complete! Faithfulness: {res.get('faithfulness', 0.0):.4f}, Answer Relevance: {res.get('answer_relevance', 0.0):.4f}")
+                else:
+                    st.error("Ragas evaluation run failed. Check logs for details.")
+                    
+        # History rendering
+        st.markdown("---")
+        st.subheader("📈 Historical Score Trends")
+        
+        import json
+        history_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../data/eval_history.json"))
+        if os.path.exists(history_path):
+            try:
+                with open(history_path, "r") as f:
+                    history = json.load(f)
+                if history:
+                    import pandas as pd
+                    df = pd.DataFrame(history)
+                    df["timestamp"] = pd.to_datetime(df["timestamp"])
+                    df = df.sort_values("timestamp")
+                    
+                    st.line_chart(df.set_index("timestamp"))
+                    st.dataframe(df.style.format({"faithfulness": "{:.4f}", "answer_relevance": "{:.4f}"}))
+                else:
+                    st.info("No evaluation runs logged yet.")
+            except Exception as e:
+                st.error(f"Error loading score history: {e}")
+        else:
+            st.info("No evaluation history found. Click 'Trigger Ragas Quality Check' to start.")
+
 # Tab 3: Security Audits (Admin only)
 if current_role >= Role.ADMIN:
     with tabs[3]:
