@@ -109,3 +109,51 @@ class Guardrails:
             "pii_detected": pii_detected,
             "pii_types": pii_types
         }
+
+    @staticmethod
+    def process_output_llm(text: str) -> dict:
+        """
+        Uses LLM (Llama-3) to review the generated output for sensitive PII (emails, phone numbers,
+        SSNs, names, addresses) and redacts them.
+        """
+        try:
+            from app.rag.llm_client import GroqLLMClient
+            import os
+            if not os.environ.get("GROQ_API_KEY") or not text.strip():
+                return {"processed_text": text, "pii_detected": False, "pii_types": []}
+                
+            client = GroqLLMClient()
+            system_msg = (
+                "You are a PII Redaction Agent. "
+                "Review the text and identify any personally identifiable information (PII) such as "
+                "individual names, specific email addresses, phone numbers, addresses, or SSNs. "
+                "Replace them with appropriate redaction tags, e.g. [REDACTED_NAME], [REDACTED_EMAIL], "
+                "[REDACTED_PHONE], [REDACTED_SSN]. "
+                "Keep all financial figures, percentages, dates, and non-sensitive corporate details exactly as they are. "
+                "Output ONLY the final redacted text without any explanation."
+            )
+            response = client.generate(prompt=text, system_message=system_msg)
+            
+            # Simple check if text has changed to detect PII
+            pii_detected = "[REDACTED" in response
+            pii_types = []
+            if pii_detected:
+                if "REDACTED_NAME" in response:
+                    pii_types.append("Name")
+                if "REDACTED_EMAIL" in response:
+                    pii_types.append("Email")
+                if "REDACTED_PHONE" in response:
+                    pii_types.append("Phone")
+                if "REDACTED_SSN" in response:
+                    pii_types.append("SSN")
+                if not pii_types:
+                    pii_types.append("General PII")
+                    
+            return {
+                "processed_text": response.strip(),
+                "pii_detected": pii_detected,
+                "pii_types": pii_types
+            }
+        except Exception as e:
+            return {"processed_text": text, "pii_detected": False, "pii_types": []}
+
