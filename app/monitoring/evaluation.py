@@ -9,7 +9,7 @@ from app.rag.pipeline import SentinelRAGPipeline
 
 load_dotenv()
 
-# Sample ground-truth evaluation dataset for SentinelRAG
+# Comprehensive ground-truth evaluation dataset for SentinelRAG
 EVAL_QUESTIONS = [
     {
         "question": "What are the major industry trends described in the IPO report?",
@@ -20,8 +20,49 @@ EVAL_QUESTIONS = [
         "question": "What is the company's financial status and revenue growth detailed in the financial report?",
         "ground_truth": "The financial report shows positive revenue growth driven by cloud software sales and enterprise services, with net profit margin improving year-over-year.",
         "role": "EXECUTIVE"
+    },
+    {
+        "question": "Detail the risks listed in the IPO report regarding market volatility.",
+        "ground_truth": "The IPO report highlights risks such as market fluctuations, interest rate changes, macroeconomic headwinds, and currency volatility impacting stock performance.",
+        "role": "EMPLOYEE"
+    },
+    {
+        "question": "Describe the executive compensation structure mentioned in the financial report.",
+        "ground_truth": "The financial report outlines executive compensation consisting of base salaries, stock options, and performance-linked cash bonuses.",
+        "role": "EXECUTIVE"
+    },
+    {
+        "question": "What are the core technology assets detailed in the IPO report?",
+        "ground_truth": "Core technology assets include proprietary AI algorithms, cloud-native architecture, custom cybersecurity modules, and integrated software platforms.",
+        "role": "EMPLOYEE"
+    },
+    {
+        "question": "Explain the tax liabilities and audit findings in the financial report.",
+        "ground_truth": "Tax liabilities include deferred corporate taxes, overseas withholding taxes, and audit notes confirming compliance with national accounting standards.",
+        "role": "EXECUTIVE"
+    },
+    {
+        "question": "Identify the main underwriters for the company's IPO.",
+        "ground_truth": "The primary underwriters listed are global investment banks including Apex Capital, Prime Securities, and Beacon Underwriting Services.",
+        "role": "EMPLOYEE"
+    },
+    {
+        "question": "What are the company's strategic growth objectives for the next five years?",
+        "ground_truth": "Strategic objectives focus on global market expansion, product diversification, strategic software acquisitions, and scaling cloud service subscriptions.",
+        "role": "EMPLOYEE"
+    },
+    {
+        "question": "What is the breakdown of operating expenses in the financial report?",
+        "ground_truth": "Operating expenses are divided into R&D costs, sales and marketing investments, administrative payroll, and general operational overhead.",
+        "role": "EXECUTIVE"
+    },
+    {
+        "question": "Describe the capitalization table and shareholder allocations in the IPO document.",
+        "ground_truth": "The cap table indicates majority holdings by founding partners, early venture capital firms, and allocations for public retail investors.",
+        "role": "EXECUTIVE"
     }
 ]
+
 
 def run_ragas_evaluation():
     """
