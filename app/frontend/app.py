@@ -448,3 +448,18 @@ if current_role >= Role.EXECUTIVE:
                     cols[2].markdown(f"{doc['chunks']}")
                     st.markdown("<div style='height: 1px; background-color: rgba(255,255,255,0.05); margin: 6px 0;'></div>", unsafe_allow_html=True)
 
+            # Document uploading (ADMIN only)
+            if current_role == Role.ADMIN:
+                st.markdown("---")
+                st.subheader("📤 Upload New Private Document")
+                
+                uploaded_file = st.file_uploader("Upload PDF Document", type=["pdf"])
+                req_role = st.selectbox(
+                    "Required Clearance Level for Document",
+                    options=[r.name for r in Role],
+                    index=0,
+                    key="upload_clearance"
+                )
+                upload_btn = st.button("Process and Index Document", use_container_width=True)
+
+
