@@ -2,22 +2,28 @@ from app.ingestion.rbac_metadata import Role
 from app.rag.retriever import RBACRetriever
 from app.rag.guardrails import Guardrails
 from app.rag.llm_client import GroqLLMClient
+from app.monitoring.audit_logger import AuditLogger
+import time
 
 class SentinelRAGPipeline:
     def __init__(self, vectorstore_path: str = "vectorstore", collection_name: str = "company_docs", model_name: str = "llama-3.1-8b-instant"):
         self.retriever = RBACRetriever(vectorstore_path=vectorstore_path, collection_name=collection_name)
         self.llm_client = GroqLLMClient(model_name=model_name)
+        self.audit_logger = AuditLogger()
 
-    def run(self, query: str, user_role_str: str) -> dict:
+    def run(self, query: str, user_role_str: str, username: str = "anonymous") -> dict:
         """
         Runs the full SentinelRAG pipeline for a given query and user role.
         Enforces input guardrails, RBAC retrieval, Groq generation, and output guardrails.
         """
+        start_time = time.time()
         user_role = Role.from_str(user_role_str)
         
         # 1. Validate Input Guardrails (Heuristics)
         input_guard = Guardrails.validate_input(query)
         if not input_guard["is_safe"]:
+            latency = (time.time() - start_time) * 1000
+            self.audit_logger.log_interaction(query, username, user_role_str, False, input_guard["reason"], False, [], latency)
             return {
                 "query": query,
                 "input_is_safe": False,
@@ -32,6 +38,8 @@ class SentinelRAGPipeline:
         # 1b. Validate Input Guardrails (LLM Shield)
         llm_guard = Guardrails.validate_input_llm(query)
         if not llm_guard["is_safe"]:
+            latency = (time.time() - start_time) * 1000
+            self.audit_logger.log_interaction(query, username, user_role_str, False, llm_guard["reason"], False, [], latency)
             return {
                 "query": query,
                 "input_is_safe": False,
@@ -82,6 +90,18 @@ class SentinelRAGPipeline:
         # Merge PII detection results
         pii_detected = output_guard["pii_detected"] or llm_output_guard["pii_detected"]
         pii_types = list(set(output_guard["pii_types"] + llm_output_guard["pii_types"]))
+        
+        latency = (time.time() - start_time) * 1000
+        self.audit_logger.log_interaction(
+            query=query,
+            username=username,
+            role_name=user_role_str,
+            input_is_safe=True,
+            safety_reason="Input passed all guardrails.",
+            pii_detected=pii_detected,
+            pii_types=pii_types,
+            latency_ms=latency
+        )
         
         return {
             "query": query,
