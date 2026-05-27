@@ -73,7 +73,15 @@ class SentinelRAGPipeline:
         raw_response = self.llm_client.generate(prompt=prompt, system_message=system_message)
         
         # 6. Apply Output Guardrails (PII Masking)
+        # 6a. Heuristic Masking
         output_guard = Guardrails.process_output(raw_response)
+        
+        # 6b. LLM Reviewer Masking
+        llm_output_guard = Guardrails.process_output_llm(output_guard["processed_text"])
+        
+        # Merge PII detection results
+        pii_detected = output_guard["pii_detected"] or llm_output_guard["pii_detected"]
+        pii_types = list(set(output_guard["pii_types"] + llm_output_guard["pii_types"]))
         
         return {
             "query": query,
@@ -81,9 +89,9 @@ class SentinelRAGPipeline:
             "input_safety_reason": "",
             "retrieved_docs": retrieved_docs,
             "raw_response": raw_response,
-            "processed_response": output_guard["processed_text"],
-            "pii_detected": output_guard["pii_detected"],
-            "pii_types": output_guard["pii_types"]
+            "processed_response": llm_output_guard["processed_text"],
+            "pii_detected": pii_detected,
+            "pii_types": pii_types
         }
 
 if __name__ == "__main__":
