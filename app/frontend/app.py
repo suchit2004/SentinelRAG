@@ -435,17 +435,41 @@ if current_role >= Role.EXECUTIVE:
                 st.info("No documents are currently indexed in the vector store.")
             else:
                 # Render registry table
-                cols = st.columns([3, 2, 1])
-                cols[0].markdown("**Document Source**")
-                cols[1].markdown("**Required Role Clearance**")
-                cols[2].markdown("**Indexed Chunks**")
+                if current_role == Role.ADMIN:
+                    cols = st.columns([3, 2, 1, 1])
+                    cols[0].markdown("**Document Source**")
+                    cols[1].markdown("**Required Role Clearance**")
+                    cols[2].markdown("**Indexed Chunks**")
+                    cols[3].markdown("**Action**")
+                else:
+                    cols = st.columns([4, 2, 2])
+                    cols[0].markdown("**Document Source**")
+                    cols[1].markdown("**Required Role Clearance**")
+                    cols[2].markdown("**Indexed Chunks**")
+                
                 st.markdown("---")
                 for doc in doc_list:
                     role_c = f"role-{doc['required_role_name'].lower()}"
-                    cols = st.columns([3, 2, 1])
-                    cols[0].markdown(f"📄 {doc['source']}")
-                    cols[1].markdown(f"<span class='role-badge {role_c}'>{doc['required_role_name']}</span>", unsafe_allow_html=True)
-                    cols[2].markdown(f"{doc['chunks']}")
+                    if current_role == Role.ADMIN:
+                        cols = st.columns([3, 2, 1, 1])
+                        cols[0].markdown(f"📄 {doc['source']}")
+                        cols[1].markdown(f"<span class='role-badge {role_c}'>{doc['required_role_name']}</span>", unsafe_allow_html=True)
+                        cols[2].markdown(f"{doc['chunks']}")
+                        # Generate unique key for button
+                        btn_key = f"del_{doc['source'].replace('.', '_').replace('-', '_')}"
+                        if cols[3].button("🗑️ Delete", key=btn_key, type="secondary"):
+                            with st.spinner("Deleting document..."):
+                                success = st.session_state.pipeline.retriever.delete_document(doc['source'])
+                            if success:
+                                st.success(f"Deleted {doc['source']} successfully!")
+                                st.rerun()
+                            else:
+                                st.error(f"Failed to delete {doc['source']}.")
+                    else:
+                        cols = st.columns([4, 2, 2])
+                        cols[0].markdown(f"📄 {doc['source']}")
+                        cols[1].markdown(f"<span class='role-badge {role_c}'>{doc['required_role_name']}</span>", unsafe_allow_html=True)
+                        cols[2].markdown(f"{doc['chunks']}")
                     st.markdown("<div style='height: 1px; background-color: rgba(255,255,255,0.05); margin: 6px 0;'></div>", unsafe_allow_html=True)
 
             # Document uploading (ADMIN only)
