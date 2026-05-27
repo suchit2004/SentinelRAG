@@ -305,79 +305,27 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Display chat messages
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-        
-        # Display sources if any were retrieved (styled as custom HTML Cards)
-        if "sources" in msg and msg["sources"]:
-            with st.expander("🔍 View Retrieved Sources"):
-                for idx, src in enumerate(msg["sources"]):
-                    role_class = f"role-{src['required_role_name'].lower()}"
-                    st.markdown(
-                        f"""
-                        <div class="source-card">
-                            <div class="source-header">
-                                <div class="source-title">📄 {src['source']}</div>
-                                <div>
-                                    <span class="role-badge {role_class}">{src['required_role_name']}</span>
-                                    <span class="source-score" style="margin-left: 10px;">Score: {src['score']:.4f}</span>
-                                </div>
-                            </div>
-                            <div class="source-body">{src['page_content']}</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True
-                    )
-        
-        # Display guardrail warning
-        if "guardrail_warning" in msg and msg["guardrail_warning"]:
-            st.warning(msg["guardrail_warning"])
+# Create tabs based on user role
+tabs_to_create = ["💬 Secure Chat"]
+if current_role >= Role.EXECUTIVE:
+    tabs_to_create.append("🗂️ Document Registry")
+    tabs_to_create.append("📊 Quality Analytics")
+if current_role >= Role.ADMIN:
+    tabs_to_create.append("🛡️ Security Audits")
 
-# Chat Input
-if prompt := st.chat_input("Ask a question about financial or IPO reports..."):
-    # Display user query
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    
-    # Store user message
-    msg_id = len(st.session_state.messages)
-    st.session_state.messages.append({
-        "id": msg_id,
-        "role": "user",
-        "content": prompt
-    })
-    
-    # Run pipeline
-    if st.session_state.pipeline is None:
-        st.error("RAG Pipeline is not initialized. Please verify Groq API key and Qdrant database.")
-    else:
-        with st.spinner("Processing request through security layers..."):
-            pipeline_result = st.session_state.pipeline.run(prompt, user_role_name)
+tabs = st.tabs(tabs_to_create)
+
+# Tab 0: Chat interface
+with tabs[0]:
+    # Display chat messages
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
             
-        # Parse result
-        if not pipeline_result["input_is_safe"]:
-            response_content = f"❌ **Request Blocked by Input Guardrail**"
-            guard_warning = f"Reason: {pipeline_result['input_safety_reason']}"
-            sources = []
-        else:
-            response_content = pipeline_result["processed_response"]
-            sources = pipeline_result["retrieved_docs"]
-            
-            # Format output guardrail warning if PII was redacted
-            if pipeline_result["pii_detected"]:
-                guard_warning = f"⚠️ **Security Notice:** Sensitive personal data ({', '.join(pipeline_result['pii_types'])}) was detected and redacted in the generated answer."
-            else:
-                guard_warning = None
-                
-        # Display assistant response
-        with st.chat_message("assistant"):
-            st.markdown(response_content)
-            
-            if sources:
+            # Display sources if any were retrieved (styled as custom HTML Cards)
+            if "sources" in msg and msg["sources"]:
                 with st.expander("🔍 View Retrieved Sources"):
-                    for idx, src in enumerate(sources):
+                    for idx, src in enumerate(msg["sources"]):
                         role_class = f"role-{src['required_role_name'].lower()}"
                         st.markdown(
                             f"""
@@ -394,15 +342,109 @@ if prompt := st.chat_input("Ask a question about financial or IPO reports..."):
                             """,
                             unsafe_allow_html=True
                         )
-                        
-            if guard_warning:
-                st.warning(guard_warning)
-                
-        # Store assistant response in session state
+            
+            # Display guardrail warning
+            if "guardrail_warning" in msg and msg["guardrail_warning"]:
+                st.warning(msg["guardrail_warning"])
+
+    # Chat Input
+    if prompt := st.chat_input("Ask a question about financial or IPO reports..."):
+        # Display user query
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Store user message
+        msg_id = len(st.session_state.messages)
         st.session_state.messages.append({
-            "id": msg_id + 1,
-            "role": "assistant",
-            "content": response_content,
-            "sources": sources,
-            "guardrail_warning": guard_warning
+            "id": msg_id,
+            "role": "user",
+            "content": prompt
         })
+        
+        # Run pipeline
+        if st.session_state.pipeline is None:
+            st.error("RAG Pipeline is not initialized. Please verify Groq API key and Qdrant database.")
+        else:
+            with st.spinner("Processing request through security layers..."):
+                pipeline_result = st.session_state.pipeline.run(prompt, user_role_name)
+                
+            # Parse result
+            if not pipeline_result["input_is_safe"]:
+                response_content = f"❌ **Request Blocked by Input Guardrail**"
+                guard_warning = f"Reason: {pipeline_result['input_safety_reason']}"
+                sources = []
+            else:
+                response_content = pipeline_result["processed_response"]
+                sources = pipeline_result["retrieved_docs"]
+                
+                # Format output guardrail warning if PII was redacted
+                if pipeline_result["pii_detected"]:
+                    guard_warning = f"⚠️ **Security Notice:** Sensitive personal data ({', '.join(pipeline_result['pii_types'])}) was detected and redacted in the generated answer."
+                else:
+                    guard_warning = None
+                    
+            # Display assistant response
+            with st.chat_message("assistant"):
+                st.markdown(response_content)
+                
+                if sources:
+                    with st.expander("🔍 View Retrieved Sources"):
+                        for idx, src in enumerate(sources):
+                            role_class = f"role-{src['required_role_name'].lower()}"
+                            st.markdown(
+                                f"""
+                                <div class="source-card">
+                                    <div class="source-header">
+                                        <div class="source-title">📄 {src['source']}</div>
+                                        <div>
+                                            <span class="role-badge {role_class}">{src['required_role_name']}</span>
+                                            <span class="source-score" style="margin-left: 10px;">Score: {src['score']:.4f}</span>
+                                        </div>
+                                    </div>
+                                    <div class="source-body">{src['page_content']}</div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True
+                            )
+                            
+                if guard_warning:
+                    st.warning(guard_warning)
+                    
+            # Store assistant response in session state
+            st.session_state.messages.append({
+                "id": msg_id + 1,
+                "role": "assistant",
+                "content": response_content,
+                "sources": sources,
+                "guardrail_warning": guard_warning
+            })
+
+# Tab 1: Document Registry (Executive and Admin)
+if current_role >= Role.EXECUTIVE:
+    with tabs[1]:
+        st.subheader("🗂️ Company Documents Registry")
+        st.markdown("All private company PDF documents currently indexed in the secure Qdrant database.")
+        
+        if st.session_state.pipeline is None:
+            st.error("RAG Pipeline is not initialized.")
+        else:
+            with st.spinner("Fetching document registry..."):
+                doc_list = st.session_state.pipeline.retriever.list_indexed_documents()
+                
+            if not doc_list:
+                st.info("No documents are currently indexed in the vector store.")
+            else:
+                # Render registry table
+                cols = st.columns([3, 2, 1])
+                cols[0].markdown("**Document Source**")
+                cols[1].markdown("**Required Role Clearance**")
+                cols[2].markdown("**Indexed Chunks**")
+                st.markdown("---")
+                for doc in doc_list:
+                    role_c = f"role-{doc['required_role_name'].lower()}"
+                    cols = st.columns([3, 2, 1])
+                    cols[0].markdown(f"📄 {doc['source']}")
+                    cols[1].markdown(f"<span class='role-badge {role_c}'>{doc['required_role_name']}</span>", unsafe_allow_html=True)
+                    cols[2].markdown(f"{doc['chunks']}")
+                    st.markdown("<div style='height: 1px; background-color: rgba(255,255,255,0.05); margin: 6px 0;'></div>", unsafe_allow_html=True)
+
