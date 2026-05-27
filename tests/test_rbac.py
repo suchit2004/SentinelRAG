@@ -26,21 +26,69 @@ def test_document_role_mapping():
 
 def test_retriever_rbac_filtering():
     """
-    Integration test using the active local Qdrant database to verify that
+    Unit test using an in-memory Qdrant database to verify that
     retrieved documents adhere strictly to RBAC level constraints.
     """
-    retriever = RBACRetriever()
+    from qdrant_client.models import VectorParams, Distance, PointStruct
     
-    # 1. As an Employee, we should NOT get any financial_report.pdf documents (level 2)
-    employee_docs = retriever.retrieve("revenue profits or company performance", Role.EMPLOYEE, limit=10)
+    # Initialize in-memory retriever
+    retriever = RBACRetriever(vectorstore_path=":memory:")
+    
+    # Setup collection
+    retriever.client.recreate_collection(
+        collection_name=retriever.collection_name,
+        vectors_config=VectorParams(size=384, distance=Distance.COSINE)
+    )
+    
+    # Index dummy employee chunk (level 1)
+    emp_content = "The industry is growing rapidly with new cloud services."
+    emp_vector = retriever.embedding_model.encode(emp_content).tolist()
+    retriever.client.upsert(
+        collection_name=retriever.collection_name,
+        points=[
+            PointStruct(
+                id=1,
+                vector=emp_vector,
+                payload={
+                    "page_content": emp_content,
+                    "source": "IPO-IndustryReport.pdf",
+                    "required_role_name": "EMPLOYEE",
+                    "required_role_level": 1
+                }
+            )
+        ]
+    )
+    
+    # Index dummy executive chunk (level 2)
+    exec_content = "Q3 financial reports show profit margins are up by 15%."
+    exec_vector = retriever.embedding_model.encode(exec_content).tolist()
+    retriever.client.upsert(
+        collection_name=retriever.collection_name,
+        points=[
+            PointStruct(
+                id=2,
+                vector=exec_vector,
+                payload={
+                    "page_content": exec_content,
+                    "source": "financial_report.pdf",
+                    "required_role_name": "EXECUTIVE",
+                    "required_role_level": 2
+                }
+            )
+        ]
+    )
+    
+    # 1. As an Employee, we should only see employee document
+    employee_docs = retriever.retrieve("profit margins or cloud services", Role.EMPLOYEE, limit=10)
     for doc in employee_docs:
         assert doc["required_role_level"] <= Role.EMPLOYEE.value
         assert doc["source"] != "financial_report.pdf"
+    assert len(employee_docs) == 1
+    assert employee_docs[0]["source"] == "IPO-IndustryReport.pdf"
         
-    # 2. As an Executive, we can get financial_report.pdf documents (level 2)
-    executive_docs = retriever.retrieve("revenue profits or company performance", Role.EXECUTIVE, limit=10)
-    has_financial_report = any(doc["source"] == "financial_report.pdf" for doc in executive_docs)
-    # Check that at least some matches are from financial_report.pdf if results are found
-    if len(executive_docs) > 0:
-        # Since the query is about revenue/profits, it should match the financial report chunks
-        assert has_financial_report is True
+    # 2. As an Executive, we should see both documents
+    executive_docs = retriever.retrieve("profit margins or cloud services", Role.EXECUTIVE, limit=10)
+    assert len(executive_docs) == 2
+    sources = [doc["source"] for doc in executive_docs]
+    assert "financial_report.pdf" in sources
+    assert "IPO-IndustryReport.pdf" in sources
