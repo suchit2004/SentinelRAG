@@ -1,0 +1,14 @@
+{
+  "employee_user": {
+    "role": "EMPLOYEE",
+    "password_hash": "ef92b778bafe441e892902bc3686887806313a37f13ef67213a444a90611e2d7"
+  },
+  "executive_user": {
+    "role": "EXECUTIVE",
+    "password_hash": "ef92b778bafe441e892902bc3686887806313a37f13ef67213a444a90611e2d7"
+  },
+  "admin_user": {
+    "role": "ADMIN",
+    "password_hash": "ef92b778bafe441e892902bc3686887806313a37f13ef67213a444a90611e2d7"
+  }
+}
