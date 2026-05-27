@@ -461,5 +461,31 @@ if current_role >= Role.EXECUTIVE:
                     key="upload_clearance"
                 )
                 upload_btn = st.button("Process and Index Document", use_container_width=True)
+                
+                if upload_btn and uploaded_file is not None:
+                    with st.spinner("Processing PDF and generating embeddings..."):
+                        temp_dir = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")), "data")
+                        os.makedirs(temp_dir, exist_ok=True)
+                        temp_path = os.path.join(temp_dir, uploaded_file.name)
+                        
+                        try:
+                            with open(temp_path, "wb") as f:
+                                f.write(uploaded_file.getbuffer())
+                                
+                            from langchain_community.document_loaders import PyPDFLoader
+                            from langchain_text_splitters import RecursiveCharacterTextSplitter
+                            
+                            loader = PyPDFLoader(temp_path)
+                            pages = loader.load()
+                            
+                            splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+                            doc_chunks = splitter.split_documents(pages)
+                            
+                            st.success(f"Loaded and split {uploaded_file.name} into {len(doc_chunks)} chunks.")
+                        except Exception as e:
+                            st.error(f"Error reading PDF: {e}")
+                            if os.path.exists(temp_path):
+                                os.remove(temp_path)
+
 
 
