@@ -4,8 +4,14 @@ from sentence_transformers import SentenceTransformer
 from app.ingestion.rbac_metadata import Role
 
 class RBACRetriever:
-    def __init__(self, vectorstore_path: str = "vectorstore", collection_name: str = "company_docs"):
-        self.client = QdrantClient(path=vectorstore_path)
+    def __init__(self, vectorstore_path: str = "vectorstore", collection_name: str = "company_docs", client: QdrantClient = None):
+        if client is not None:
+            self.client = client
+        elif vectorstore_path == ":memory:":
+            self.client = QdrantClient(location=":memory:")
+        else:
+            self.client = QdrantClient(path=vectorstore_path)
+            
         self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         self.collection_name = collection_name
 
