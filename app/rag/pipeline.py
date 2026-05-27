@@ -3,7 +3,10 @@ from app.rag.retriever import RBACRetriever
 from app.rag.guardrails import Guardrails
 from app.rag.llm_client import GroqLLMClient
 from app.monitoring.audit_logger import AuditLogger
+from app.monitoring.monitoring import get_traceable_decorator
 import time
+
+traceable = get_traceable_decorator()
 
 class SentinelRAGPipeline:
     def __init__(self, vectorstore_path: str = "vectorstore", collection_name: str = "company_docs", model_name: str = "llama-3.1-8b-instant"):
@@ -11,6 +14,7 @@ class SentinelRAGPipeline:
         self.llm_client = GroqLLMClient(model_name=model_name)
         self.audit_logger = AuditLogger()
 
+    @traceable(name="SentinelRAGPipeline.run")
     def run(self, query: str, user_role_str: str, username: str = "anonymous") -> dict:
         """
         Runs the full SentinelRAG pipeline for a given query and user role.
