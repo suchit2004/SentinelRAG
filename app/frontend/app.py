@@ -7,6 +7,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")
 
 from app.rag.pipeline import SentinelRAGPipeline
 from app.ingestion.rbac_metadata import Role
+from app.auth.auth_manager import AuthManager
+
 
 # Page config
 st.set_page_config(
@@ -180,6 +182,15 @@ st.markdown(
 # Initialize Session State
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "auth_manager" not in st.session_state:
+    st.session_state.auth_manager = AuthManager()
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "user_role" not in st.session_state:
+    st.session_state.user_role = Role.EMPLOYEE
+
 if "pipeline" not in st.session_state:
     try:
         # Load local vector store, model
@@ -187,6 +198,41 @@ if "pipeline" not in st.session_state:
     except Exception as e:
         st.session_state.pipeline = None
         st.error(f"Error initializing RAG pipeline: {e}")
+
+# Login Screen Layout
+if not st.session_state.authenticated:
+    st.markdown(
+        """
+        <div class="hero-container" style="max-width: 500px; margin: 80px auto; text-align: center;">
+            <div class="hero-title" style="font-size: 2.2rem; text-align: center;">🛡️ SentinelRAG Login</div>
+            <div class="hero-subtitle" style="margin-bottom: 20px; text-align: center;">Access restricted to authorized personnel.</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    with st.container():
+        # Center column trick
+        _, login_col, _ = st.columns([1, 2, 1])
+        with login_col:
+            username_input = st.text_input("Username", key="login_username")
+            password_input = st.text_input("Password", type="password", key="login_password")
+            login_btn = st.button("Authenticate", use_container_width=True)
+            
+            # Simple credentials hint for demo
+            st.markdown(
+                """
+                <p style="color: #64748b; font-size: 0.8rem; text-align: center; margin-top: 15px;">
+                    Simulated Credentials:<br/>
+                    • <b>admin_user</b> / password123 (ADMIN)<br/>
+                    • <b>executive_user</b> / password123 (EXECUTIVE)<br/>
+                    • <b>employee_user</b> / password123 (EMPLOYEE)
+                </p>
+                """,
+                unsafe_allow_html=True
+            )
+    st.stop()
+
 
 # Sidebar
 with st.sidebar:
