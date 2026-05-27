@@ -15,7 +15,7 @@ class SentinelRAGPipeline:
         """
         user_role = Role.from_str(user_role_str)
         
-        # 1. Validate Input Guardrails
+        # 1. Validate Input Guardrails (Heuristics)
         input_guard = Guardrails.validate_input(query)
         if not input_guard["is_safe"]:
             return {
@@ -25,6 +25,20 @@ class SentinelRAGPipeline:
                 "retrieved_docs": [],
                 "raw_response": "",
                 "processed_response": f"Request blocked: {input_guard['reason']}",
+                "pii_detected": False,
+                "pii_types": []
+            }
+            
+        # 1b. Validate Input Guardrails (LLM Shield)
+        llm_guard = Guardrails.validate_input_llm(query)
+        if not llm_guard["is_safe"]:
+            return {
+                "query": query,
+                "input_is_safe": False,
+                "input_safety_reason": llm_guard["reason"],
+                "retrieved_docs": [],
+                "raw_response": "",
+                "processed_response": f"Request blocked: {llm_guard['reason']}",
                 "pii_detected": False,
                 "pii_types": []
             }
