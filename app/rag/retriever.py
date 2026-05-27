@@ -89,3 +89,26 @@ class RBACRetriever:
             print(f"Error listing documents: {e}")
             return []
 
+    def delete_document(self, source_filename: str) -> bool:
+        """
+        Deletes all chunks belonging to a specific source filename from the Qdrant store.
+        """
+        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        try:
+            self.client.delete(
+                collection_name=self.collection_name,
+                points_selector=Filter(
+                    must=[
+                        FieldCondition(
+                            key="source",
+                            match=MatchValue(value=source_filename)
+                        )
+                    ]
+                )
+            )
+            return True
+        except Exception as e:
+            print(f"Error deleting document {source_filename}: {e}")
+            return False
+
+
