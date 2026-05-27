@@ -481,7 +481,50 @@ if current_role >= Role.EXECUTIVE:
                             splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
                             doc_chunks = splitter.split_documents(pages)
                             
-                            st.success(f"Loaded and split {uploaded_file.name} into {len(doc_chunks)} chunks.")
+                            # Index chunks in Qdrant
+                            from qdrant_client.models import PointStruct
+                            
+                            retriever = st.session_state.pipeline.retriever
+                            role_enum = Role.from_str(req_role)
+                            
+                            points = []
+                            for idx, chunk in enumerate(doc_chunks):
+                                vector = retriever.embedding_model.encode(chunk.page_content).tolist()
+                                
+                                # Enrich chunk metadata
+                                chunk.metadata["source"] = uploaded_file.name
+                                chunk.metadata["required_role_name"] = role_enum.name
+                                chunk.metadata["required_role_level"] = role_enum.value
+                                
+                                payload = {
+                                    "page_content": chunk.page_content,
+                                    "metadata": chunk.metadata,
+                                    "source": chunk.metadata.get("source", ""),
+                                    "required_role_name": chunk.metadata.get("required_role_name", "ADMIN"),
+                                    "required_role_level": chunk.metadata.get("required_role_level", 3)
+                                }
+                                
+                                # Generate unique 64-bit ID from hash
+                                point_id = hash(f"{uploaded_file.name}_{idx}") & 0xFFFFFFFFFFFF
+                                points.append(
+                                    PointStruct(
+                                        id=point_id,
+                                        vector=vector,
+                                        payload=payload
+                                    )
+                                )
+                            
+                            retriever.client.upsert(
+                                collection_name=retriever.collection_name,
+                                points=points
+                            )
+                            
+                            # Remove temp file
+                            if os.path.exists(temp_path):
+                                os.remove(temp_path)
+                                
+                            st.success(f"Successfully processed, embedded, and indexed {uploaded_file.name} ({len(doc_chunks)} chunks)!")
+                            st.rerun()
                         except Exception as e:
                             st.error(f"Error reading PDF: {e}")
                             if os.path.exists(temp_path):
