@@ -219,6 +219,16 @@ if not st.session_state.authenticated:
             password_input = st.text_input("Password", type="password", key="login_password")
             login_btn = st.button("Authenticate", use_container_width=True)
             
+            if login_btn:
+                if st.session_state.auth_manager.authenticate_user(username_input, password_input):
+                    st.session_state.authenticated = True
+                    st.session_state.username = username_input
+                    st.session_state.user_role = st.session_state.auth_manager.get_user_role(username_input)
+                    st.success("Authentication successful!")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password.")
+            
             # Simple credentials hint for demo
             st.markdown(
                 """
