@@ -51,3 +51,41 @@ class RBACRetriever:
             })
             
         return docs
+
+    def list_indexed_documents(self):
+        """
+        Lists all unique documents indexed in Qdrant, returning their names,
+        required clearance roles, and chunk counts.
+        """
+        try:
+            # Check if collection exists
+            collections = self.client.get_collections()
+            exist = any(c.name == self.collection_name for c in collections.collections)
+            if not exist:
+                return []
+                
+            scroll_res = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=1000,
+                with_payload=True,
+                with_vector=False
+            )
+            
+            docs = {}
+            for point in scroll_res[0]:
+                payload = point.payload
+                if payload:
+                    src = payload.get("source", "unknown")
+                    role_name = payload.get("required_role_name", "ADMIN")
+                    if src not in docs:
+                        docs[src] = {
+                            "source": src,
+                            "required_role_name": role_name,
+                            "chunks": 0
+                        }
+                    docs[src]["chunks"] += 1
+            return list(docs.values())
+        except Exception as e:
+            print(f"Error listing documents: {e}")
+            return []
+
