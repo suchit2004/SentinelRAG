@@ -250,21 +250,23 @@ with st.sidebar:
     st.markdown("<p style='color: #64748b; font-size: 0.85rem;'>Enterprise RAG SecOps System</p>", unsafe_allow_html=True)
     st.markdown("---")
     
-    # User Profile / Role Simulation
-    st.subheader("Simulate Identity")
-    user_name = st.text_input("Name", value="Jane Doe")
-    user_role_name = st.selectbox(
-        "Select Role",
-        options=[role.name for role in Role],
-        index=0  # Defaults to EMPLOYEE
-    )
-    
-    current_role = Role.from_str(user_role_name)
+    # User Profile
+    st.subheader("Authenticated User")
+    user_name = st.session_state.username
+    user_role_name = st.session_state.user_role.name
+    current_role = st.session_state.user_role
     
     # Active role display using custom badges
     badge_class = f"role-{user_role_name.lower()}"
     st.markdown(
-        f"<div style='margin-bottom: 15px;'>Active Clearance: <span class='role-badge {badge_class}'>{user_role_name}</span></div>", 
+        f"""
+        <div style='background-color: rgba(255,255,255,0.02); padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 15px;'>
+            <p style='margin: 0; font-size: 0.8rem; color: #64748b;'>USER</p>
+            <p style='margin: 0 0 8px 0; font-weight: 600; font-size: 1.1rem;'>👤 {user_name}</p>
+            <p style='margin: 0; font-size: 0.8rem; color: #64748b; margin-bottom: 4px;'>CLEARANCE LEVEL</p>
+            <span class='role-badge {badge_class}'>{user_role_name}</span>
+        </div>
+        """, 
         unsafe_allow_html=True
     )
     
@@ -283,6 +285,12 @@ with st.sidebar:
     
     st.markdown("---")
     if st.button("Clear Chat History", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+        
+    if st.button("Log Out", type="secondary", use_container_width=True):
+        st.session_state.authenticated = False
+        st.session_state.username = ""
         st.session_state.messages = []
         st.rerun()
 
